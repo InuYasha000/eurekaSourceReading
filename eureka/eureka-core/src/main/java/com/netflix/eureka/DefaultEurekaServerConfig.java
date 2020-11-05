@@ -48,6 +48,7 @@ import java.util.*;
  *
  * @author Karthik Ranganathan
  *
+ * 包含eureka-server使用的所有配置，都可以通过这个接口来获取
  */
 @Singleton
 public class DefaultEurekaServerConfig implements EurekaServerConfig {
@@ -103,6 +104,7 @@ public class DefaultEurekaServerConfig implements EurekaServerConfig {
         // 初始化 配置文件对象
         String env = ConfigurationManager.getConfigInstance().getString(EUREKA_ENVIRONMENT, TEST);
         ConfigurationManager.getConfigInstance().setProperty(ARCHAIUS_DEPLOYMENT_ENVIRONMENT, env);
+        // eureka 配置文件名字
         String eurekaPropsFile = EUREKA_PROPS_FILE.get();
         try {
             // ConfigurationManager

@@ -51,6 +51,7 @@ public class EurekaClientServerRestIntegrationTest {
 
     private static EurekaServerConfig eurekaServerConfig;
 
+    // jetty，类似于tomcat，单元测试中需要启动jetty web容器
     private static Server server;
     private static TransportClientFactory httpClientFactory;
 

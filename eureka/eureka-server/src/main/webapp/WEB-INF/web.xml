@@ -49,16 +49,19 @@
     </init-param>
   </filter>
 
+  <!--处理所有逻辑-->
   <filter-mapping>
     <filter-name>statusFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
 
+  <!--处理所有逻辑-->
   <filter-mapping>
     <filter-name>requestAuthFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
 
+  <!--默认不开启-->
   <!-- Uncomment this to enable rate limiter filter.
   <filter-mapping>
     <filter-name>rateLimitingFilter</filter-name>
@@ -73,6 +76,7 @@
     <url-pattern>/v2/apps/*</url-pattern>
   </filter-mapping>
 
+  <!--拦截所有页面-->
   <filter-mapping>
     <filter-name>jersey</filter-name>
     <url-pattern>/*</url-pattern>
