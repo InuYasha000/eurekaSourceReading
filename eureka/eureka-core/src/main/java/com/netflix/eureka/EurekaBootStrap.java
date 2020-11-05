@@ -179,13 +179,15 @@ public class EurekaBootStrap implements ServletContextListener {
         // 【2.2.4】创建 Eureka-Client，跟其他的client通信
         ApplicationInfoManager applicationInfoManager;
         if (eurekaClient == null) {
+            // 面向接口的配置文件的读取
             EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext())
                     ? new CloudInstanceConfig()
                     : new MyDataCenterInstanceConfig();
-            
+
             applicationInfoManager = new ApplicationInfoManager(
                     instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
-            
+
+            //这个配置类跟前面不太一样，这个跟 EurekaClient 关联更多
             EurekaClientConfig eurekaClientConfig = new DefaultEurekaClientConfig();
             eurekaClient = new DiscoveryClient(applicationInfoManager, eurekaClientConfig);
         } else {
@@ -193,6 +195,7 @@ public class EurekaBootStrap implements ServletContextListener {
         }
 
         // 【2.2.5】创建 应用实例信息的注册表，处理注册相关事情
+        //可以感知eureka server集群的服务实例注册表
         PeerAwareInstanceRegistry registry;
         if (isAws(applicationInfoManager.getInfo())) { // AWS 相关，跳过
             registry = new AwsInstanceRegistry(

@@ -169,11 +169,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         this.serverConfig = serverConfig;
         this.clientConfig = clientConfig;
         this.serverCodecs = serverCodecs;
+        //最近摘掉的实例
         this.recentCanceledQueue = new CircularQueue<Pair<Long, String>>(1000);
+        //最近注册的实例
         this.recentRegisteredQueue = new CircularQueue<Pair<Long, String>>(1000);
 
+        //最后进行服务续约
         this.renewsLastMin = new MeasuredRate(1000 * 60 * 1);
 
+        //调度器
         this.deltaRetentionTimer.schedule(getDeltaRetentionTask(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs());

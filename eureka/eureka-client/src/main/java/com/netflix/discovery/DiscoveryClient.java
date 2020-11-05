@@ -333,6 +333,7 @@ public class DiscoveryClient implements EurekaClient {
                     Provider<BackupRegistry> backupRegistryProvider) {
         // 【3.2.1】赋值 AbstractDiscoveryClientOptionalArgs
         if (args != null) {
+            //健康检查相关
             this.healthCheckHandlerProvider = args.healthCheckHandlerProvider;
             this.healthCheckCallbackProvider = args.healthCheckCallbackProvider;
             this.eventListeners.addAll(args.getEventListeners());
@@ -373,12 +374,14 @@ public class DiscoveryClient implements EurekaClient {
         remoteRegionsRef = new AtomicReference<>(remoteRegionsToFetch.get() == null ? null : remoteRegionsToFetch.get().split(","));
 
         // 【3.2.7】初始化拉取、心跳的监控
+        //是否去其它client抓取注册表，单个的enreka设置为false，集群为true
         if (config.shouldFetchRegistry()) {
             this.registryStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRY_PREFIX + "lastUpdateSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
             this.registryStalenessMonitor = ThresholdLevelsMetric.NO_OP_METRIC;
         }
 
+        //是否向其它eureka注册，单个也是false
         if (config.shouldRegisterWithEureka()) {
             this.heartbeatStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRATION_PREFIX + "lastHeartbeatSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
@@ -387,7 +390,7 @@ public class DiscoveryClient implements EurekaClient {
 
         logger.info("Initializing Eureka in region {}", clientConfig.getRegion());
 
-        // 【3.2.8】结束初始化，当无需和 Eureka-Server 交互
+        // 【3.2.8】结束初始化，当无需和 Eureka-Server 交互，这里算是节约资源
         if (!config.shouldRegisterWithEureka() && !config.shouldFetchRegistry()) {
             logger.info("Client configured to neither register nor query for data.");
             scheduler = null;
@@ -417,6 +420,7 @@ public class DiscoveryClient implements EurekaClient {
                             .setDaemon(true)
                             .build());
 
+            //0-->空闲线程释放关掉，
             heartbeatExecutor = new ThreadPoolExecutor(
                     1, clientConfig.getHeartbeatExecutorThreadPoolSize(), 0, TimeUnit.SECONDS,
                     new SynchronousQueue<Runnable>(),
@@ -455,6 +459,7 @@ public class DiscoveryClient implements EurekaClient {
         }
 
         // 【3.2.12】从 Eureka-Server 拉取注册信息
+        //配置了抓取注册表，倘若失败了，就从备份那里去抓
         if (clientConfig.shouldFetchRegistry() && !fetchRegistry(false)) {
             fetchRegistryFromBackup();
         }
@@ -540,6 +545,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationsSource
         );
 
+        //如果需要注册到其它的eureka
         if (clientConfig.shouldRegisterWithEureka()) {
             EurekaHttpClientFactory newRegistrationClientFactory = null;
             EurekaHttpClient newRegistrationClient = null;
@@ -1329,6 +1335,7 @@ public class DiscoveryClient implements EurekaClient {
 
             // 创建 应用实例信息复制器
             // InstanceInfo replicator
+            //服务实例副本传递
             instanceInfoReplicator = new InstanceInfoReplicator(
                     this,
                     instanceInfo,
