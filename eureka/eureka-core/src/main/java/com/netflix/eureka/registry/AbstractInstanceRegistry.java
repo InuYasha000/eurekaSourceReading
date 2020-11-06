@@ -100,7 +100,8 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     private final CircularQueue<Pair<Long, String>> recentCanceledQueue;
 
     /**
-     * 最近租约变更记录队列
+     * 最近租约变更记录队列,最近有变化的服务实例
+     * 最近3分钟变化的服务实例
      */
     private ConcurrentLinkedQueue<RecentlyChangedItem> recentlyChangedQueue = new ConcurrentLinkedQueue<RecentlyChangedItem>();
 
@@ -178,6 +179,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         this.renewsLastMin = new MeasuredRate(1000 * 60 * 1);
 
         //调度器
+        // 30秒去看一下服务实例的变更，看是否在队列里停留超过180s，如果超过了3分钟，就移除
         this.deltaRetentionTimer.schedule(getDeltaRetentionTask(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs(),
                 serverConfig.getDeltaRetentionTimerIntervalInMs());
@@ -343,7 +345,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             recentlyChangedQueue.add(new RecentlyChangedItem(lease));
             // 设置 租约的最后更新时间戳
             registrant.setLastUpdatedTimestamp();
-            // 设置 响应缓存 过期
+            // 设置 响应缓存 过期，全部过期
             invalidateCache(registrant.getAppName(), registrant.getVIPAddress(), registrant.getSecureVipAddress());
             logger.info("Registered instance {}/{} with status {} (replication={})",
                     registrant.getAppName(), registrant.getId(), registrant.getStatus(), isReplication);
@@ -412,12 +414,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 String svip = null;
                 if (instanceInfo != null) {
                     instanceInfo.setActionType(ActionType.DELETED);
+                    //加到最近三分钟变化的服务实例的queue（每隔30秒去）
+                    //服务注册，下线，故障摘除都会放到这个里面去
                     recentlyChangedQueue.add(new RecentlyChangedItem(leaseToCancel));
                     instanceInfo.setLastUpdatedTimestamp();
                     vip = instanceInfo.getVIPAddress();
                     svip = instanceInfo.getSecureVipAddress();
                 }
                 // 设置 响应缓存 过期
+                //之前缓存清理掉
                 invalidateCache(appName, vip, svip);
                 logger.info("Cancelled instance {}/{} (replication={})", appName, id, isReplication);
                 return true; // 成功
@@ -477,7 +482,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             }
             // 新增 续租每分钟次数
             renewsLastMin.increment();
-            // 设置 租约最后更新时间（续租）
+            // 设置 租约最后更新时间（续租），这就是续约的本质所在，注意这里有个duration
             leaseToRenew.renew();
             return true;
         }
@@ -713,6 +718,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     public void evict(long additionalLeaseMs) {
         logger.debug("Running the evict task");
 
+        //是否允许主动删除掉故障服务实例
         if (!isLeaseExpirationEnabled()) {
             logger.debug("DS: lease expiration is currently disabled.");
             return;
@@ -728,6 +734,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             if (leaseMap != null) {
                 for (Entry<String, Lease<InstanceInfo>> leaseEntry : leaseMap.entrySet()) {
                     Lease<InstanceInfo> lease = leaseEntry.getValue();
+                    //2倍超时时间
                     if (lease.isExpired(additionalLeaseMs) && lease.getHolder() != null) { // 过期
                         expiredLeases.add(lease);
                     }
@@ -735,19 +742,24 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             }
         }
 
+        // 不能一次摘除所有实例，
         // 计算 最大允许清理租约数量
         // To compensate for GC pauses or drifting local time, we need to use current registry size as a base for
         // triggering self-preservation. Without that we would wipe out full registry.
+        // 服务实例数量
         int registrySize = (int) getLocalRegistrySize();
-        int registrySizeThreshold = (int) (registrySize * serverConfig.getRenewalPercentThreshold());
+        int registrySizeThreshold = (int) (registrySize * serverConfig.getRenewalPercentThreshold());//0.85
+        // 最多摘除服务实例数量
         int evictionLimit = registrySize - registrySizeThreshold;
 
         // 计算 清理租约数量
+        // 已经过期的租约 expiredLeases
+        // evictionLimit 这次只能摘除的值
         int toEvict = Math.min(expiredLeases.size(), evictionLimit);
         if (toEvict > 0) {
             logger.info("Evicting {} items (expired={}, evictionLimit={})", toEvict, expiredLeases.size(), evictionLimit);
 
-            // 逐个过期
+            // 逐个过期，随机挑选
             Random random = new Random(System.currentTimeMillis());
             for (int i = 0; i < toEvict; i++) {
                 // Pick a random item (Knuth shuffle algorithm)
@@ -1378,6 +1390,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             evictionTaskRef.get().cancel();
         }
         evictionTaskRef.set(new EvictionTask());
+        // 60秒检查是否有宕机服务
         evictionTimer.schedule(evictionTaskRef.get(),
                 serverConfig.getEvictionIntervalTimerInMs(),
                 serverConfig.getEvictionIntervalTimerInMs());
@@ -1428,13 +1441,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
          * according to the configured cycle.
          */
         long getCompensationTimeMs() {
+            // 当前时间
             long currNanos = getCurrentTimeNano();
+            // 上一次evictiontask执行时间 ，0 ，当前时间设置到 AtomicLong
             long lastNanos = lastExecutionNanosRef.getAndSet(currNanos);
             if (lastNanos == 0L) {
                 return 0L;
             }
             long elapsedMs = TimeUnit.NANOSECONDS.toMillis(currNanos - lastNanos);
-            long compensationTime = elapsedMs - serverConfig.getEvictionIntervalTimerInMs();
+            long compensationTime = elapsedMs - serverConfig.getEvictionIntervalTimerInMs();//60秒
             return compensationTime <= 0L ? 0L : compensationTime;
         }
 
@@ -1505,7 +1520,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 Iterator<RecentlyChangedItem> it = recentlyChangedQueue.iterator();
                 while (it.hasNext()) {
                     RecentlyChangedItem item = it.next();
-                    if (item.getLastUpdateTime() < System.currentTimeMillis() - serverConfig.getRetentionTimeInMSInDeltaQueue()) {
+                    if (item.getLastUpdateTime() < System.currentTimeMillis() - serverConfig.getRetentionTimeInMSInDeltaQueue()) {//3分钟
                         it.remove();
 System.err.println("[getDeltaRetentionTask]instance_id：" + item.getLeaseInfo().getHolder().getId()); // 芋艿，调试用途，请无视。debugger
                     } else {

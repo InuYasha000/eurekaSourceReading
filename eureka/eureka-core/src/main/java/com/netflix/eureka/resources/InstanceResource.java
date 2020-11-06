@@ -103,7 +103,7 @@ public class InstanceResource {
             @QueryParam("status") String status,
             @QueryParam("lastDirtyTimestamp") String lastDirtyTimestamp) {
         boolean isFromReplicaNode = "true".equals(isReplication);
-        // 续租
+        // 续租，服务续约
         boolean isSuccess = registry.renew(app.getName(), id, isFromReplicaNode);
 
         // 续租失败

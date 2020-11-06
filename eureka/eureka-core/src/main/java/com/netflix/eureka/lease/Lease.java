@@ -72,7 +72,7 @@ public class Lease<T> {
      */
     private long serviceUpTimestamp;
     /**
-     * 最后更新时间戳
+     * 最后更新时间戳，用于续约
      */
     // Make it volatile so that the expiration task would see this quicker
     private volatile long lastUpdateTimestamp;
@@ -94,6 +94,7 @@ public class Lease<T> {
      * {@link #DEFAULT_DURATION_IN_SECS}.
      */
     public void renew() {
+        // 这个活跃时间多了90秒，和后面自动感知服务下线相关联
         lastUpdateTimestamp = System.currentTimeMillis() + duration;
     }
 
@@ -141,6 +142,7 @@ public class Lease<T> {
      * @param additionalLeaseMs any additional lease time to add to the lease evaluation in ms.
      */
     public boolean isExpired(long additionalLeaseMs) {
+        //当前时间是否大于上一次心跳时间，再加上90秒，再加上 additionalLeaseMs (compensationTime,补偿时间，92s)
         return (evictionTimestamp > 0 || System.currentTimeMillis() > (lastUpdateTimestamp + duration + additionalLeaseMs));
     }
 

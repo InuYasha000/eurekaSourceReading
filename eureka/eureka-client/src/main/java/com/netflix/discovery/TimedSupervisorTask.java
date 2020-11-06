@@ -70,6 +70,7 @@ public class TimedSupervisorTask extends TimerTask {
         Monitors.registerObject(name, this);
     }
 
+    //在finally中，也就是当前任务跑成功了，但是再加入线程池然后延迟再去跑
     @Override
     public void run() {
         Future<?> future = null;

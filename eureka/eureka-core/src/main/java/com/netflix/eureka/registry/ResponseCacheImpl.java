@@ -119,6 +119,7 @@ public class ResponseCacheImpl implements ResponseCache {
         this.registry = registry;
 
         long responseCacheUpdateIntervalMs = serverConfig.getResponseCacheUpdateIntervalMs();
+        //默认30秒执行线程调度任务
         this.readWriteCacheMap =
                 CacheBuilder.newBuilder().initialCapacity(1000)
                         .expireAfterWrite(serverConfig.getResponseCacheAutoExpirationInSeconds(), TimeUnit.SECONDS)
@@ -146,6 +147,7 @@ public class ResponseCacheImpl implements ResponseCache {
                             }
                         });
 
+        // 每隔30秒钟将 readWriteCacheMap 同步到 readOnlyCacheMap 中
         if (shouldUseReadOnlyResponseCache) {
             timer.schedule(getCacheUpdateTask(),
                     new Date(((System.currentTimeMillis() / responseCacheUpdateIntervalMs) * responseCacheUpdateIntervalMs)
@@ -264,6 +266,7 @@ public class ResponseCacheImpl implements ResponseCache {
         for (Key key : keys) {
             logger.debug("Invalidating the response cache key : {} {} {} {}, {}", key.getEntityType(), key.getName(), key.getVersion(), key.getType(), key.getEurekaAccept());
             // 过期读写缓存
+            // readWriteCacheMap 每隔30秒 更新到 readOnlyCacheMap 。这里只更新 readWriteCacheMap 。
             readWriteCacheMap.invalidate(key);
             // TODO[0009]：RemoteRegionRegistry
             Collection<Key> keysWithRegions = regionSpecificKeys.get(key);

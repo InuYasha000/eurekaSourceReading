@@ -43,7 +43,7 @@ public class LeaseInfo {
 
     // Client settings
     /**
-     * 租约续约频率，单位：秒。
+     * 租约续约频率，单位：秒。30秒
      */
     private int renewalIntervalInSecs = DEFAULT_LEASE_RENEWAL_INTERVAL;
     /**

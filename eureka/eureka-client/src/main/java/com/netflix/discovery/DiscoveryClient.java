@@ -930,23 +930,29 @@ public class DiscoveryClient implements EurekaClient {
             logger.info("Shutting down DiscoveryClient ...");
 
             if (statusChangeListener != null && applicationInfoManager != null) {
+                //下线事件
                 applicationInfoManager.unregisterStatusChangeListener(statusChangeListener.getId());
             }
 
+            //线程池shutdown，释放资源，停止运行线程
             cancelScheduledTasks();
 
             // If APPINFO was registered
             if (applicationInfoManager != null
                     && clientConfig.shouldRegisterWithEureka() // eureka.registration.enabled = true
                     && clientConfig.shouldUnregisterOnShutdown()) { // eureka.shouldUnregisterOnShutdown = true
+                //服务实例状态设置为down
                 applicationInfoManager.setInstanceStatus(InstanceStatus.DOWN);
+                //最核心方法，下线
                 unregister();
             }
 
+            //关闭网络通信组件
             if (eurekaTransport != null) {
                 eurekaTransport.shutdown();
             }
 
+            //监听器关掉
             heartbeatStalenessMonitor.shutdown();
             registryStalenessMonitor.shutdown();
 
@@ -1257,6 +1263,7 @@ public class DiscoveryClient implements EurekaClient {
                     applications = remoteApps;
                 }
 
+                //增删改
                 ++deltaCount;
                 if (ActionType.ADDED.equals(instance.getActionType())) { // 添加
                     Application existingApp = applications.getRegisteredApplications(instance.getAppName());
@@ -1303,8 +1310,10 @@ public class DiscoveryClient implements EurekaClient {
         // 从 Eureka-Server 拉取注册信息执行器
         if (clientConfig.shouldFetchRegistry()) {
             // registry cache refresh timer
+            //30秒
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
+            // 30秒执行一次调度
             scheduler.schedule(
                     new TimedSupervisorTask(
                             "cacheRefresh",
@@ -1325,6 +1334,7 @@ public class DiscoveryClient implements EurekaClient {
             logger.info("Starting heartbeat executor: " + "renew interval is: " + renewalIntervalInSecs);
 
             // Heartbeat timer
+            // 默认每隔30秒发送一次心跳
             scheduler.schedule(
                     new TimedSupervisorTask(
                             "heartbeat",
