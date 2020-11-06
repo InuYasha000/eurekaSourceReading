@@ -208,6 +208,7 @@ public class DiscoveryClient implements EurekaClient {
     private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
     protected final EurekaClientConfig clientConfig;
+    //支持底层的eureka client跟eureka server进行网络通信的组件，对网络通信组件进行了一些初始化的操作
     protected final EurekaTransportConfig transportConfig;
 
     /**
@@ -346,9 +347,11 @@ public class DiscoveryClient implements EurekaClient {
 
         // 【3.2.2】赋值 ApplicationInfoManager、EurekaClientConfig
         this.applicationInfoManager = applicationInfoManager;
+        // 当前这个服务实例的实例本身的信息,构造器模式
         InstanceInfo myInfo = applicationInfoManager.getInfo();
 
         clientConfig = config;
+        //支持底层的eureka client跟eureka server进行网络通信的组件，对网络通信组件进行了一些初始化的操作
         staticClientConfig = clientConfig;
         transportConfig = config.getTransportConfig();
         instanceInfo = myInfo;

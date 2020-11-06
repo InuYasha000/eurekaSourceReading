@@ -177,6 +177,7 @@ public class EurekaBootStrap implements ServletContextListener {
         ServerCodecs serverCodecs = new DefaultServerCodecs(eurekaServerConfig);
 
         // 【2.2.4】创建 Eureka-Client，跟其他的client通信
+        // 基于EurekaInstanceConfig和InstnaceInfo，构造了一个ApplicationInfoManager
         ApplicationInfoManager applicationInfoManager;
         if (eurekaClient == null) {
             // 面向接口的配置文件的读取
@@ -225,6 +226,7 @@ public class EurekaBootStrap implements ServletContextListener {
         );
 
         // 【2.2.7】创建 Eureka-Server 上下文，完成eureka上下文构建
+        // 当前eureka server服务上下文，包含了服务器需要的所有东西，把这个serverContext 放到 EurekaServerContextHolder 中，这样系统运行期间，谁都可以使用
         serverContext = new DefaultEurekaServerContext(
                 eurekaServerConfig,
                 serverCodecs,
@@ -241,6 +243,7 @@ public class EurekaBootStrap implements ServletContextListener {
         logger.info("Initialized server context");
 
         // 【2.2.10】从其他 Eureka-Server 拉取注册信息
+        // 从相邻的一个eureka server节点拷贝注册表的信息，如果拷贝失败，就找下一个
         // Copy registry from neighboring eureka node
         int registryCount = registry.syncUp();
         registry.openForTraffic(applicationInfoManager, registryCount);
