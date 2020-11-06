@@ -123,6 +123,7 @@ class InstanceInfoReplicator implements Runnable {
         }
     }
 
+    //这里才是eureka注册的地方
     @Override
     public void run() {
         try {

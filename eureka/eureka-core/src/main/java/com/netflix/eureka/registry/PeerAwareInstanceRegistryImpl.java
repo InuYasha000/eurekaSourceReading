@@ -408,7 +408,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         }
         // 注册应用实例信息
         super.register(info, leaseDuration, isReplication);
-        // Eureka-Server 复制
+        // Eureka-Server 复制，同步到其它eureka中
         replicateToPeers(Action.Register, info.getAppName(), info.getId(), info, null, isReplication);
     }
 

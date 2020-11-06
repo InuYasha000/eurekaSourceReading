@@ -110,6 +110,7 @@ public class ApplicationsResource {
         // TODO[0009]：RemoteRegionRegistry
         boolean isRemoteRegionRequested = null != regionsStr && !regionsStr.isEmpty();
         String[] regions = null;
+        //计数
         if (!isRemoteRegionRequested) {
             EurekaMonitors.GET_ALL.increment();
         } else {
@@ -151,6 +152,7 @@ public class ApplicationsResource {
                     .header(HEADER_CONTENT_TYPE, returnMediaType)
                     .build();
         } else {
+            //缓存机制就是从这走的
             response = Response.ok(responseCache.get(cacheKey))
                     .build();
         }

@@ -988,7 +988,8 @@ public class DiscoveryClient implements EurekaClient {
             // applications
             Applications applications = getApplications();
 
-            // 全量获取
+            // 这里思考是不是可以用 isXXX ，可读性高
+            // 全量获取，第一次绝对走这个
             if (clientConfig.shouldDisableDelta() // 禁用增量获取
                     || (!Strings.isNullOrEmpty(clientConfig.getRegistryRefreshSingleVipAddress()))
                     || forceFullRegistryFetch
@@ -1101,7 +1102,7 @@ public class DiscoveryClient implements EurekaClient {
         }
         logger.info("The response status is {}", httpResponse.getStatusCode());
 
-        // 设置到本地缓存
+        // 设置到本地缓存，放到缓存
         if (apps == null) {
             logger.error("The application is null for some reason. Not storing this information");
         } else if (fetchRegistryGeneration.compareAndSet(currentUpdateGeneration, currentUpdateGeneration + 1)) {
@@ -1443,6 +1444,7 @@ public class DiscoveryClient implements EurekaClient {
         // 健康检查
         InstanceStatus status;
         try {
+            //健康状态
             status = getHealthCheckHandler().getStatus(instanceInfo.getStatus());
         } catch (Exception e) {
             logger.warn("Exception from healthcheckHandler.getStatus, setting status to DOWN", e);
