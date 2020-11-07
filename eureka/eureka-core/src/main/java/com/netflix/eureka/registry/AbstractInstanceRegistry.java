@@ -291,6 +291,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                         // Since the client wants to cancel it, reduce the threshold
                         // (1
                         // for 30 seconds, 2 for a minute)
+                        //新增一个服务实例，期望的心跳次数就应该多两次，可以看到服务下线的时候，也就是减2
                         this.expectedNumberOfRenewsPerMin = this.expectedNumberOfRenewsPerMin + 2;
                         this.numberOfRenewsPerMinThreshold =
                                 (int) (this.expectedNumberOfRenewsPerMin * serverConfig.getRenewalPercentThreshold());
@@ -719,6 +720,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         logger.debug("Running the evict task");
 
         //是否允许主动删除掉故障服务实例
+        //自我保护机制
         if (!isLeaseExpirationEnabled()) {
             logger.debug("DS: lease expiration is currently disabled.");
             return;
@@ -1440,10 +1442,11 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
          * clock skew or gc for example) causes the actual eviction task to execute later than the desired time
          * according to the configured cycle.
          */
+        // 补偿时间
         long getCompensationTimeMs() {
             // 当前时间
             long currNanos = getCurrentTimeNano();
-            // 上一次evictiontask执行时间 ，0 ，当前时间设置到 AtomicLong
+            // 上一次 evictiontask 执行时间 ，0 ，当前时间设置到 AtomicLong
             long lastNanos = lastExecutionNanosRef.getAndSet(currNanos);
             if (lastNanos == 0L) {
                 return 0L;

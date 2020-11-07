@@ -139,6 +139,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         this.numberOfReplicationsLastMin.start();
         this.peerEurekaNodes = peerEurekaNodes;
         initializedResponseCache();
+        // 启动定时调度任务，15分钟
         scheduleRenewalThresholdUpdateTask();
         initRemoteRegionRegistry();
 
@@ -176,13 +177,14 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * many instances at a time.
      *
      */
+    //15分钟跑一次定时任务，将自己作为eureka client，合并到自己本地去，将别的服务实例拉取到的count作为count
     private void scheduleRenewalThresholdUpdateTask() {
         timer.schedule(new TimerTask() {
                            @Override
                            public void run() {
                                updateRenewalThreshold();
                            }
-                       }, serverConfig.getRenewalThresholdUpdateIntervalMs(),
+                       }, serverConfig.getRenewalThresholdUpdateIntervalMs(),//15分钟
                 serverConfig.getRenewalThresholdUpdateIntervalMs());
     }
 
@@ -228,9 +230,11 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     @Override
     public void openForTraffic(ApplicationInfoManager applicationInfoManager, int count) {
         // Renewals happen every 30 seconds and for a minute it should be a factor of 2.
+        // 我期望每分钟的心跳数最大值和最小值
+        // count是从别的服务拉取过来的服务实例数量
         this.expectedNumberOfRenewsPerMin = count * 2;
         this.numberOfRenewsPerMinThreshold =
-                (int) (this.expectedNumberOfRenewsPerMin * serverConfig.getRenewalPercentThreshold());
+                (int) (this.expectedNumberOfRenewsPerMin * serverConfig.getRenewalPercentThreshold());//0.85
         logger.info("Got " + count + " instances from neighboring DS node");
         logger.info("Renew threshold is: " + numberOfRenewsPerMinThreshold);
         // 设置启动时间
@@ -485,6 +489,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
             // The self preservation mode is disabled, hence allowing the instances to expire.
             return true;
         }
+        //我期望一分钟有 numberOfRenewsPerMinThreshold 次心跳，getNumOfRenewsInLastMin -->服务实例发送心跳
+        //上一分钟发送心跳大于我期望心跳
+        // numberOfRenewsPerMinThreshold
         return numberOfRenewsPerMinThreshold > 0 && getNumOfRenewsInLastMin() > numberOfRenewsPerMinThreshold;
     }
 
@@ -520,6 +527,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * renewals. The threshold is a percentage as specified in
      * {@link EurekaServerConfig#getRenewalPercentThreshold()} of renewals
      * received per minute {@link #getNumOfRenewsInLastMin()}.
+     */
+    /**
+     * 计算当前服务实例数量
      */
     private void updateRenewalThreshold() {
         try {
