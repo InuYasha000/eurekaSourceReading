@@ -355,6 +355,7 @@ class AcceptorExecutor<ID, T> {
         }
 
         void assignBatchWork() {
+            //默认将一定时间的任务打成一个批处理  500ms
             if (hasEnoughTasksForNextBatch()) {
                 // 获取 批量任务工作请求信号量
                 if (batchWorkRequests.tryAcquire(1)) {
@@ -366,6 +367,7 @@ class AcceptorExecutor<ID, T> {
                         ID id = processingOrder.poll();
                         TaskHolder<ID, T> holder = pendingTasks.remove(id);
                         if (holder.getExpiryTime() > now) { // 过期
+                            //打成一个批处理
                             holders.add(holder);
                         } else {
                             expiredTasks++;

@@ -108,6 +108,7 @@ public class PeerEurekaNodes {
         );
         try {
             // 初始化 集群节点信息
+            // resolvePeerUrls 解析配置文件中其它serviceUrl地址
             updatePeerEurekaNodes(resolvePeerUrls());
             // 初始化 初始化固定周期更新集群节点信息的任务
             Runnable peersUpdateTask = new Runnable() {
@@ -123,7 +124,7 @@ public class PeerEurekaNodes {
             };
             taskExecutor.scheduleWithFixedDelay(
                     peersUpdateTask,
-                    serverConfig.getPeerEurekaNodesUpdateIntervalMs(),
+                    serverConfig.getPeerEurekaNodesUpdateIntervalMs(),//10分钟
                     serverConfig.getPeerEurekaNodesUpdateIntervalMs(),
                     TimeUnit.MILLISECONDS
             );
@@ -226,6 +227,7 @@ public class PeerEurekaNodes {
         this.peerEurekaNodeUrls = new HashSet<>(newPeerUrls);
     }
 
+    // 创建 PeerEurekaNode
     protected PeerEurekaNode createPeerEurekaNode(String peerEurekaNodeUrl) {
         HttpReplicationClient replicationClient = JerseyReplicationClient.createReplicationClient(serverConfig, serverCodecs, peerEurekaNodeUrl);
         String targetHost = hostFromUrl(peerEurekaNodeUrl);

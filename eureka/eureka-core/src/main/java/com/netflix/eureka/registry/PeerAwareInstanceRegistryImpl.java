@@ -193,15 +193,20 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * operation fails over to other nodes until the list is exhausted if the
      * communication fails.
      */
+    //这里就是client会在本地拿注册表，如果没抓到就等等
+    //因为本地会一直从其它server抓注册表，因此等待30秒后再次重试
     @Override
     public int syncUp() {
         // Copy entire entry from neighboring DS node
         int count = 0;
 
+        //这里的count==0就表示没有获取到注册信息
         for (int i = 0; ((i < serverConfig.getRegistrySyncRetries()) && (count == 0)); i++) {
             // 未读取到注册信息，sleep 等待
             if (i > 0) {
                 try {
+                    // 第一次没有在本地的eureka client获取到注册表，说明自己本地还没有从任何其它
+                    // eureka server获取注册表，此时等待30秒并重试，
                     Thread.sleep(serverConfig.getRegistrySyncRetryWaitMs());
                 } catch (InterruptedException e) {
                     logger.warn("Interrupted during registry transfer..");
@@ -215,6 +220,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                 for (InstanceInfo instance : app.getInstances()) {
                     try {
                         if (isRegisterable(instance)) { // 判断是否能够注册
+                            //注册到本地
                             register(instance, instance.getLeaseInfo().getDurationInSecs(), true); // 注册
                             count++;
                         }
@@ -412,7 +418,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         }
         // 注册应用实例信息
         super.register(info, leaseDuration, isReplication);
-        // Eureka-Server 复制，同步到其它eureka中
+        // Eureka-Server 复制，同步到其它eureka中,注册的时候复制到其它
         replicateToPeers(Action.Register, info.getAppName(), info.getId(), info, null, isReplication);
     }
 
@@ -645,6 +651,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                 return;
             }
 
+            //拿到所有的eureka server。需要排除掉自己
             for (final PeerEurekaNode node : peerEurekaNodes.getPeerEurekaNodes()) {
                 // If the url represents this host, do not replicate to yourself.
                 if (peerEurekaNodes.isThisMyUrl(node.getServiceUrl())) {
