@@ -1314,6 +1314,7 @@ public class DiscoveryClient implements EurekaClient {
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
             int expBackOffBound = clientConfig.getCacheRefreshExecutorExponentialBackOffBound();
             // 30秒执行一次调度
+            // 注册信息30秒增量拉新一次
             scheduler.schedule(
                     new TimedSupervisorTask(
                             "cacheRefresh",
@@ -1335,6 +1336,7 @@ public class DiscoveryClient implements EurekaClient {
 
             // Heartbeat timer
             // 默认每隔30秒发送一次心跳
+            // 心跳续租
             scheduler.schedule(
                     new TimedSupervisorTask(
                             "heartbeat",

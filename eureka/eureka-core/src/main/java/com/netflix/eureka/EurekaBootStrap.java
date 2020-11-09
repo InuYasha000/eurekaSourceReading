@@ -87,7 +87,8 @@ public class EurekaBootStrap implements ServletContextListener {
 
     protected volatile EurekaServerContext serverContext;
     protected volatile AwsBinder awsBinder;
-    
+
+    //内嵌的eureka-client
     private EurekaClient eurekaClient;
 
     /**
@@ -116,7 +117,7 @@ public class EurekaBootStrap implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent event) {
         try {
-            // 初始化 Eureka-Server 配置环境
+            // 初始化 Eureka-Server 配置环境，用于读取合适的配置文件，测试环境/生产环境
             initEurekaEnvironment();
 
             // 初始化 Eureka-Server 上下文
@@ -167,6 +168,7 @@ public class EurekaBootStrap implements ServletContextListener {
         EurekaServerConfig eurekaServerConfig = new DefaultEurekaServerConfig();
 
         // 【2.2.2】Eureka-Server 请求和响应的数据兼容
+        // Eureka-Server 提供 V2 版本 API,主要对 V1 版本 API 做兼容
         // For backward compatibility
         JsonXStream.getInstance().registerConverter(new V1AwareInstanceInfoConverter(), XStream.PRIORITY_VERY_HIGH);
         XmlXStream.getInstance().registerConverter(new V1AwareInstanceInfoConverter(), XStream.PRIORITY_VERY_HIGH);
