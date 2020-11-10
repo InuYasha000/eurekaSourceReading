@@ -56,6 +56,7 @@ import java.util.*;
  * </p>
  *
  * <p>
+ *     eureka启动时尝试从其它server抓取注册表，如果失败了就不会让其它服务实例来这里进行服务发现
  * When the eureka server starts up it tries to fetch all the registry
  * information from the peer eureka nodes.If for some reason this operation
  * fails, the server does not allow the user to get the registry information for
@@ -63,6 +64,7 @@ import java.util.*;
  * {@link com.netflix.eureka.EurekaServerConfig#getWaitTimeInMsWhenSyncEmpty()}.
  * </p>
  *
+ * 如果当前server在一定时间内获取心跳比例低于一定比例，server就认为网络故障，不会摘除故障，进入自我保护机制
  * <p>
  * One important thing to note about <em>renewals</em>.If the renewal drops more
  * than the specified threshold as specified in
@@ -140,6 +142,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         this.peerEurekaNodes = peerEurekaNodes;
         initializedResponseCache();
         // 启动定时调度任务，15分钟
+        // 这里是15分钟调度执行一次，拿到服务实例的数量，进行心跳数的计算
         scheduleRenewalThresholdUpdateTask();
         initRemoteRegionRegistry();
 
@@ -193,8 +196,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * operation fails over to other nodes until the list is exhausted if the
      * communication fails.
      */
-    //这里就是client会在本地拿注册表，如果没抓到就等等
-    //因为本地会一直从其它server抓注册表，因此等待30秒后再次重试
+    //这里就是client(server)会在本地拿注册表，如果没抓到就等等
     @Override
     public int syncUp() {
         // Copy entire entry from neighboring DS node
@@ -205,6 +207,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
             // 未读取到注册信息，sleep 等待
             if (i > 0) {
                 try {
+                    // 这里理解有问题，这里是去向本地注册
                     // 第一次没有在本地的eureka client获取到注册表，说明自己本地还没有从任何其它
                     // eureka server获取注册表，此时等待30秒并重试，
                     Thread.sleep(serverConfig.getRegistrySyncRetryWaitMs());
