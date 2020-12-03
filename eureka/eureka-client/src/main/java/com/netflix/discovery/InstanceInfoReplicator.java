@@ -41,6 +41,7 @@ class InstanceInfoReplicator implements Runnable {
     private final int replicationIntervalSeconds;
     /**
      * 定时执行器
+     * 这个定时执行器核心线程数只有一个，这里就是定时30秒注册的执行器，
      */
     private final ScheduledExecutorService scheduler;
     /**

@@ -39,7 +39,7 @@ public class MeasuredRate {
      */
     private final AtomicLong currentBucket = new AtomicLong(0);
     /**
-     * 间隔
+     * 间隔 60s
      */
     private final long sampleInterval;
     /**

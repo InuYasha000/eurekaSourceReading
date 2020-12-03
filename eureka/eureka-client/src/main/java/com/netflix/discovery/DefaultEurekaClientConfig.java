@@ -116,7 +116,7 @@ public class DefaultEurekaClientConfig implements EurekaClientConfig {
      * @see com.netflix.discovery.EurekaClientConfig#
      * getInstanceInfoReplicationIntervalSeconds()
      */
-    // 默认30秒抓取一次注册表
+    // 默认30秒执行一次注册表
     @Override
     public int getInstanceInfoReplicationIntervalSeconds() {
         return configInstance.getIntProperty(

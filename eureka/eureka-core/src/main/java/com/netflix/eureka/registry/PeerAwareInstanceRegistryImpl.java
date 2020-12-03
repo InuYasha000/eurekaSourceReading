@@ -196,7 +196,6 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * operation fails over to other nodes until the list is exhausted if the
      * communication fails.
      */
-    //这里就是client(server)会在本地拿注册表，如果没抓到就等等
     @Override
     public int syncUp() {
         // Copy entire entry from neighboring DS node

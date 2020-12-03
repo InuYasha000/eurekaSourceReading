@@ -1383,7 +1383,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.registerStatusChangeListener(statusChangeListener);
             }
 
-            // 开启 应用实例信息复制器
+            // 开启 应用实例信息复制器,这里就是注册
             instanceInfoReplicator.start(clientConfig.getInitialInstanceInfoReplicationIntervalSeconds());
         } else {
             logger.info("Not registering with Eureka server per configuration");
@@ -1465,6 +1465,7 @@ public class DiscoveryClient implements EurekaClient {
             logger.warn("Exception from healthcheckHandler.getStatus, setting status to DOWN", e);
             status = InstanceStatus.DOWN;
         }
+        //在这里其实可以看到一点的就是如果状态变更最终会将30秒的定时调度给停掉（cancel），通过监听者模式 notify
         if (null != status) {
             applicationInfoManager.setInstanceStatus(status);
         }
