@@ -143,6 +143,8 @@ public class Lease<T> {
      */
     public boolean isExpired(long additionalLeaseMs) {
         //当前时间是否大于上一次心跳时间，再加上90秒，再加上 additionalLeaseMs ( compensationTime,补偿时间，92s)
+        // 这里lastupdateTimeStamp实际上是加了两次的90s，因此多出来的90s是bug，但是eureka官方不准备修复，
+        // 原因在于ribbon那块是直接基于续约次数来做的计算实例，直接绕过了eureka本身的计算过期实例
         return (evictionTimestamp > 0 || System.currentTimeMillis() > (lastUpdateTimestamp + duration + additionalLeaseMs));
     }
 

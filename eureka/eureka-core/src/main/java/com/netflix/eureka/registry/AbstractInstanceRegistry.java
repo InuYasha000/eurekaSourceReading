@@ -293,6 +293,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                         // for 30 seconds, 2 for a minute)
                         //新增一个服务实例，期望的心跳次数就应该多两次，可以看到服务下线的时候，也就是减2
                         this.expectedNumberOfRenewsPerMin = this.expectedNumberOfRenewsPerMin + 2;
+                        //这里也是乘以 0.85 最小期望续约次数
                         this.numberOfRenewsPerMinThreshold =
                                 (int) (this.expectedNumberOfRenewsPerMin * serverConfig.getRenewalPercentThreshold());
                     }
@@ -719,7 +720,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     public void evict(long additionalLeaseMs) {
         logger.debug("Running the evict task");
 
-        //是否允许主动删除掉故障服务实例
+        //是否允许主动删除掉故障服务实例  实际租约 > 期望最小租约 & 打开配置 &
         //自我保护机制
         if (!isLeaseExpirationEnabled()) {
             logger.debug("DS: lease expiration is currently disabled.");
